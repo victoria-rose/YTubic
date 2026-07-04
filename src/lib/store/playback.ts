@@ -475,5 +475,17 @@ export function initFloatingPlaybackBridge(): void {
     appendToQueue: (tracks) =>
       sendAction({ type: "appendToQueue", tracks: tracks as unknown[] }),
     setAutoRadio: (on) => sendAction({ type: "setAutoRadio", on }),
+    // Queue-building actions reachable from the floater's ⋮ menu (Play,
+    // Play next, Add to queue, Start radio). Without these overrides they
+    // mutated only the floater's mirror store — nothing actually played and
+    // the queue silently diverged until the next broadcast overwrote it.
+    playNow: (track, extras) =>
+      sendAction({ type: "playNow", track: track as unknown, extras: extras as unknown }),
+    playShelfItems: (items, startIndex) =>
+      sendAction({ type: "playShelfItems", items: items as unknown[], startIndex }),
+    enqueueNext: (track) =>
+      sendAction({ type: "enqueueNext", track: track as unknown }),
+    enqueueEnd: (track) =>
+      sendAction({ type: "enqueueEnd", track: track as unknown }),
   });
 }

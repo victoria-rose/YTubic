@@ -112,7 +112,11 @@ type PlaybackAction =
   | { type: "moveTrack"; from: number; to: number }
   | { type: "clearQueue" }
   | { type: "appendToQueue"; tracks: unknown[] }
-  | { type: "setAutoRadio"; on: boolean };
+  | { type: "setAutoRadio"; on: boolean }
+  | { type: "playNow"; track: unknown; extras?: unknown }
+  | { type: "playShelfItems"; items: unknown[]; startIndex: number }
+  | { type: "enqueueNext"; track: unknown }
+  | { type: "enqueueEnd"; track: unknown };
 
 type TrackSourceAction =
   | { type: "setSelected"; id: string; selected: SourceKind }
@@ -222,6 +226,20 @@ export function FloatingPlayerSync() {
             break;
           case "setAutoRadio":
             store.setAutoRadio(a.on);
+            break;
+          // Serialized ShelfItem/QueueTrack objects; the store methods
+          // accept both shapes and pull only the fields they need.
+          case "playNow":
+            store.playNow(a.track as never, a.extras as never);
+            break;
+          case "playShelfItems":
+            store.playShelfItems(a.items as never, a.startIndex);
+            break;
+          case "enqueueNext":
+            store.enqueueNext(a.track as never);
+            break;
+          case "enqueueEnd":
+            store.enqueueEnd(a.track as never);
             break;
         }
       }),

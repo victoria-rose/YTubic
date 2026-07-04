@@ -1139,6 +1139,31 @@ async fn cache_cover(
         p.ok_or_else(|| "stream server not ready".to_string())?
     };
 
+    // SSRF guard: cover URLs come from remote metadata (iTunes/mzstatic +
+    // YT image hosts). Only fetch https from those known CDNs so a crafted
+    // metadata field can't point the server-side fetch at an internal
+    // service (e.g. 169.254.169.254 or a LAN admin page). Redirects are
+    // disabled below so a CDN-looking URL can't 302 into the allowlist.
+    {
+        let parsed = reqwest::Url::parse(&url).map_err(|e| format!("bad url: {e}"))?;
+        if parsed.scheme() != "https" {
+            return Err(format!("blocked scheme: {}", parsed.scheme()));
+        }
+        const ALLOWED_HOST_SUFFIXES: &[&str] = &[
+            "mzstatic.com",
+            "ytimg.com",
+            "ggpht.com",
+            "googleusercontent.com",
+        ];
+        let host = parsed.host_str().unwrap_or("");
+        let host_ok = ALLOWED_HOST_SUFFIXES
+            .iter()
+            .any(|s| host == *s || host.ends_with(&format!(".{s}")));
+        if !host_ok {
+            return Err(format!("blocked cover host: {host}"));
+        }
+    }
+
     let dir = cover_cache_dir(&app);
     tokio::fs::create_dir_all(&dir)
         .await
@@ -1150,6 +1175,7 @@ async fn cache_cover(
     if !path.exists() {
         let resp = reqwest::Client::builder()
             .timeout(Duration::from_secs(10))
+            .redirect(reqwest::redirect::Policy::none())
             .build()
             .map_err(|e| format!("client: {e}"))?
             .get(&url)

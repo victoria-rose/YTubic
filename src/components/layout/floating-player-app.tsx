@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { ThemeProvider } from "next-themes";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { PinIcon } from "lucide-react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
@@ -19,13 +19,7 @@ import {
 } from "@/lib/store/track-source";
 import { useLayoutStore } from "@/lib/store/layout";
 import { cn } from "@/lib/utils";
-import {
-  PERSIST_MAX_AGE,
-  fitsInPersistBudget,
-  persister,
-  queryClient,
-  shouldPersistQuery,
-} from "@/lib/query-client";
+import { queryClient } from "@/lib/query-client";
 
 // Wire the store's user-facing actions to emit Tauri events instead of
 // mutating local state directly — only the main window's audio engine
@@ -51,19 +45,12 @@ export default function FloatingPlayerApp() {
       storageKey="ytm-theme"
       disableTransitionOnChange
     >
-      <PersistQueryClientProvider
-        client={queryClient}
-        persistOptions={{
-          persister,
-          maxAge: PERSIST_MAX_AGE,
-          dehydrateOptions: {
-            shouldDehydrateQuery: (q) =>
-              q.state.status === "success" &&
-              shouldPersistQuery(q.queryKey) &&
-              fitsInPersistBudget(q.state.data),
-          },
-        }}
-      >
+      {/* Plain (non-persisting) provider: the floating window is a separate
+          JS context that would otherwise write its own cache into the shared
+          `ytm-native-query-cache` key — clobbering the main window and
+          resurrecting a previous account's data after a switch. It only
+          mirrors live playback via events, so it needs no cold-start cache. */}
+      <QueryClientProvider client={queryClient}>
         <TooltipProvider delayDuration={800} skipDelayDuration={0}>
           <div className="relative flex h-screen w-screen flex-col overflow-hidden bg-background">
             <FloatingBackgroundCover />
@@ -75,7 +62,7 @@ export default function FloatingPlayerApp() {
           </div>
         </TooltipProvider>
         <Toaster />
-      </PersistQueryClientProvider>
+      </QueryClientProvider>
     </ThemeProvider>
   );
 }
