@@ -1347,20 +1347,34 @@ fn spawn_downloader(
         let mut file = tokio::fs::File::create(&part_path).await.ok();
         let mut buf = vec![0u8; 64 * 1024];
         let mut ok = true;
+        // Per-read timeout so a wedged yt-dlp (stalled TCP / hung extractor)
+        // can't keep this task and the child process alive forever with
+        // `complete` stuck false — otherwise every later request for the id
+        // attaches to the dead entry and blocks 120s then 504.
+        const READ_TIMEOUT: Duration = Duration::from_secs(60);
         loop {
-            match stdout.read(&mut buf).await {
-                Ok(0) => break,
-                Ok(n) => {
+            match tokio::time::timeout(READ_TIMEOUT, stdout.read(&mut buf)).await {
+                Err(_) => {
+                    eprintln!("[stream] read timeout for {video_id}; killing yt-dlp");
+                    let _ = child.start_kill();
+                    ok = false;
+                    break;
+                }
+                Ok(Ok(0)) => break,
+                Ok(Ok(n)) => {
                     let chunk = &buf[..n];
                     if let Some(ref mut f) = file {
                         if let Err(e) = f.write_all(chunk).await {
                             eprintln!("[stream] write .part: {e}");
                             file = None;
+                            // A truncated prefix must NOT be renamed to .webm
+                            // and cached — mark the whole download failed.
+                            ok = false;
                         }
                     }
                     state.notify.notify_waiters();
                 }
-                Err(e) => {
+                Ok(Err(e)) => {
                     eprintln!("[stream] read stdout: {e}");
                     ok = false;
                     break;
@@ -1410,14 +1424,20 @@ fn spawn_downloader(
         state.complete.store(true, Ordering::Release);
         state.notify.notify_waiters();
 
-        // Evict from in-memory map after a grace period so a brief
-        // re-play stays in RAM, then falls back to on-disk ServeFile.
-        let downloads_evict = downloads.clone();
-        let key = map_key.clone();
-        tokio::spawn(async move {
-            tokio::time::sleep(Duration::from_secs(60)).await;
-            downloads_evict.lock().await.remove(&key);
-        });
+        if success {
+            // Evict from in-memory map after a grace period so a brief
+            // re-play stays in RAM, then falls back to on-disk ServeFile.
+            let downloads_evict = downloads.clone();
+            let key = map_key.clone();
+            tokio::spawn(async move {
+                tokio::time::sleep(Duration::from_secs(60)).await;
+                downloads_evict.lock().await.remove(&key);
+            });
+        } else {
+            // Failed: drop the entry immediately so the next play retries
+            // instead of getting an instant 502 for the whole 60s window.
+            downloads.lock().await.remove(&map_key);
+        }
     });
 }
 
@@ -1651,20 +1671,22 @@ async fn prefetch_handler(
     if final_path.exists() {
         return StatusCode::OK;
     }
-    {
-        let map = srv.downloads.lock().await;
+    let state = {
+        // Single lock hold for check-then-insert so a concurrent /stream
+        // (whose check+insert is already atomic) or a second /prefetch can't
+        // slip in between and spawn a second downloader writing the same
+        // .part file, corrupting the cached track.
+        let mut map = srv.downloads.lock().await;
         if map.contains_key(&map_key) {
             return StatusCode::ACCEPTED;
         }
-    }
-    let state = Arc::new(DownloadState {
-        complete: Arc::new(AtomicBool::new(false)),
-        notify: Arc::new(Notify::new()),
-    });
-    srv.downloads
-        .lock()
-        .await
-        .insert(map_key.clone(), state.clone());
+        let state = Arc::new(DownloadState {
+            complete: Arc::new(AtomicBool::new(false)),
+            notify: Arc::new(Notify::new()),
+        });
+        map.insert(map_key.clone(), state.clone());
+        state
+    };
     spawn_downloader(video_id, target_dir, map_key, srv.clone(), state);
     StatusCode::ACCEPTED
 }
