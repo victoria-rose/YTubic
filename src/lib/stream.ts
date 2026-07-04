@@ -38,15 +38,6 @@ export function getStreamBaseUrl(): Promise<string> {
   return baseUrlPromise;
 }
 
-/**
- * Drop the cached base URL. Call when the localhost stream server
- * appears unreachable (e.g. after a Rust crash + restart that bound a
- * different port) so the next request reprobes via `get_stream_base_url`.
- */
-export function resetStreamBaseUrl(): void {
-  baseUrlPromise = null;
-}
-
 function ephemeralSuffix(): string {
   return isPremium() ? "" : "?ephemeral=1";
 }

@@ -71,9 +71,6 @@ importers:
       tailwind-merge:
         specifier: ^3.5.0
         version: 3.5.0
-      youtubei.js:
-        specifier: ^17.0.1
-        version: 17.0.1
       zustand:
         specifier: ^5.0.12
         version: 5.0.12(@types/react@19.2.14)(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))
@@ -117,6 +114,9 @@ importers:
       vite:
         specifier: ^7.0.4
         version: 7.3.2(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)
+      youtubei.js:
+        specifier: ^17.0.1
+        version: 17.0.1
 
 packages:
 

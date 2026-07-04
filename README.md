@@ -19,14 +19,14 @@ Built as a reaction to the sluggish webview-wrapper experience — ytm-native ta
 ## Phase status
 
 - [x] **Phase 0** — Scaffold: Tauri + React + shadcn + TanStack, app shell (sidebar, topbar, player bar placeholders), stub routes (Home/Search/Library/Settings)
-- [ ] **Phase 1** — InnerTube client + auth (cookie import), real Home feed
-- [ ] **Phase 2** — Artist/Album/Playlist pages, search, cached navigation
-- [ ] **Phase 3** — Audio engine + player bar, MediaSession API
-- [ ] **Phase 4** — Queue management, context menus, autoplay/radio
-- [ ] **Phase 5** — Library (your playlists, liked songs), SQLite cache
-- [ ] **Phase 6** — Aggressive caching, infinite scroll via continuations
-- [ ] **Phase 7** — Windows SMTC, global media keys, tray, single-instance
-- [ ] **Phase 8** — Settings, shortcuts, polish
+- [x] **Phase 1** — InnerTube client + auth (cookie import), real Home feed
+- [x] **Phase 2** — Artist/Album/Playlist pages, search, cached navigation
+- [x] **Phase 3** — Audio engine + player bar, MediaSession API
+- [x] **Phase 4** — Queue management, context menus, autoplay/radio
+- [x] **Phase 5** — Library (your playlists, liked songs)
+- [x] **Phase 6** — Aggressive caching, infinite scroll via continuations
+- [x] **Phase 7** — Windows SMTC, global media keys, tray, single-instance
+- [x] **Phase 8** — Settings, shortcuts, polish, floating player, lyrics
 
 ## Dev
 
@@ -41,17 +41,18 @@ Frontend-only dev (no Tauri window): `pnpm dev`.
 
 ```
 src/
-├── routes/          # TanStack Router file-based routes
+├── routes/              # TanStack Router file-based routes
 ├── components/
-│   ├── ui/          # shadcn primitives
-│   ├── layout/      # AppShell, sidebar, topbar, player bar
-│   ├── player/      # Audio engine, queue
-│   └── shared/      # Song row, cards, etc.
+│   ├── ui/              # shadcn primitives
+│   ├── layout/          # AppShell, sidebar, topbar, player bar, floating player, lyrics
+│   └── shared/          # Track list/rows, cards, shelves, context menus
 ├── lib/
-│   ├── innertube/   # InnerTube client + parsers
-│   ├── audio/       # Playback engine, stream resolver
-│   ├── store/       # Zustand stores
-│   └── utils.ts     # cn() and friends
+│   ├── innertube/        # Raw InnerTube client + parsers
+│   ├── lyrics/          # LRCLIB / Musixmatch / Genius sources + LRC parser
+│   ├── store/           # Zustand stores
+│   ├── audio-engine.ts  # Playback engine
+│   ├── stream.ts        # Stream URL resolver (localhost proxy)
+│   └── utils.ts         # cn() and friends
 └── hooks/
-src-tauri/           # Rust backend
+src-tauri/               # Rust backend (axum stream proxy, cookies, tray)
 ```
