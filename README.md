@@ -37,6 +37,18 @@ pnpm tauri dev
 
 Frontend-only dev (no Tauri window): `pnpm dev`.
 
+## Quality checks
+
+```bash
+pnpm test         # vitest unit tests (pure parsers/matchers)
+pnpm lint         # eslint
+pnpm format       # prettier --write
+pnpm build        # tsc + vite production build
+```
+
+CI (`.github/workflows/ci.yml`) runs typecheck, lint, tests, build and
+`cargo check` on every push / PR.
+
 ## Project layout
 
 ```

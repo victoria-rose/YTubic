@@ -1,4 +1,5 @@
 import type { PlaylistPage, ShelfItem } from "./types";
+import { parseTrackCount } from "./parse-count";
 import {
   collectResponsiveRows,
   deepFindThumbnails,
@@ -104,12 +105,7 @@ export async function fetchPlaylistFirstPage(
   }
   const subtitleText = readRuns(header.subtitle);
   const secondText = readRuns(header.secondSubtitle);
-  // Allow a thousands separator: "5,000 songs" must parse as 5000, not 0
-  // (the old /(\d+)/ matched only the digits after the last comma).
-  const trackCountMatch = secondText.match(/([\d,]+)\s+songs?/i);
-  const trackCount = trackCountMatch
-    ? parseInt(trackCountMatch[1].replace(/,/g, ""), 10) || undefined
-    : undefined;
+  const trackCount = parseTrackCount(secondText);
 
   const seenIds = new Set<string>();
   let tracks = collectTracks(json, seenIds);

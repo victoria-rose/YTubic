@@ -1,4 +1,5 @@
 import type { AlbumPage, MinimalArtist, ShelfItem } from "./types";
+import { parseTrackCount } from "./parse-count";
 import {
   collectResponsiveRows,
   mapResponsiveListItem,
@@ -63,11 +64,8 @@ export async function fetchAlbum(id: string): Promise<AlbumPage> {
     .map((r) => r.text ?? "")
     .join("")
     .trim();
-  // "12 songs • 45 minutes" — allow a thousands separator ("1,234 songs").
-  const trackCountMatch = secondText.match(/([\d,]+)\s+songs?/i);
-  const trackCount = trackCountMatch
-    ? parseInt(trackCountMatch[1].replace(/,/g, ""), 10) || undefined
-    : undefined;
+  // "12 songs • 45 minutes"
+  const trackCount = parseTrackCount(secondText);
   const durationMatch = secondText.split("•")[1]?.trim();
 
   // Walk the whole response. Album layouts vary (singleColumn vs
