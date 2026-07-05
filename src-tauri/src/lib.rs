@@ -703,6 +703,9 @@ async fn open_player_window(
     .disable_drag_drop_handler()
     .build()
     .map_err(|e| e.to_string())?;
+    // Dev builds: orange taskbar icon, same as the main window.
+    #[cfg(debug_assertions)]
+    let _ = win.set_icon(runtime_icon(&app));
     if let (Some(cx), Some(cy)) = (x, y) {
         // Override whatever the window-state plugin restored. Centering
         // horizontally on cursor with the 36px-tall title bar just
@@ -1821,6 +1824,25 @@ fn show_main_window(app: &tauri::AppHandle) {
     }
 }
 
+/// App icon for runtime surfaces (tray, taskbar). Debug builds get an
+/// orange variant of the logo so a dev instance running next to an
+/// installed release is distinguishable at a glance; release builds use
+/// the bundled (red) icon.
+fn runtime_icon(app: &tauri::AppHandle) -> tauri::image::Image<'static> {
+    #[cfg(debug_assertions)]
+    {
+        if let Ok(icon) =
+            tauri::image::Image::from_bytes(include_bytes!("../icons/icon-dev.png"))
+        {
+            return icon;
+        }
+    }
+    app.default_window_icon()
+        .cloned()
+        .expect("bundled window icon missing")
+        .to_owned()
+}
+
 fn build_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
     let show_item = MenuItem::with_id(app, "show", "Show YTubic", true, None::<&str>)?;
     let play_item = MenuItem::with_id(app, "play_pause", "Play / Pause", true, Some("Space"))?;
@@ -1835,8 +1857,12 @@ fn build_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
     )?;
 
     let _tray = TrayIconBuilder::with_id("main-tray")
-        .icon(app.default_window_icon().cloned().unwrap())
-        .tooltip("YTubic")
+        .icon(runtime_icon(app))
+        .tooltip(if cfg!(debug_assertions) {
+            "YTubic (dev)"
+        } else {
+            "YTubic"
+        })
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id().as_ref() {
@@ -1964,6 +1990,13 @@ pub fn run() {
             });
             if let Err(e) = build_tray(app.handle()) {
                 eprintln!("[tray] build failed: {e}");
+            }
+            // Debug builds swap the taskbar/window icon to the orange
+            // dev variant (see runtime_icon) so a dev instance is
+            // instantly distinguishable from an installed release.
+            #[cfg(debug_assertions)]
+            if let Some(w) = app.get_webview_window("main") {
+                let _ = w.set_icon(runtime_icon(app.handle()));
             }
             Ok(())
         })

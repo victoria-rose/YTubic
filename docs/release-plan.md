@@ -209,14 +209,22 @@ Premium-фича «загрузки»). Перед релизом:
 - [ ] Проверить цепочку v0.1.0 → v0.1.1 на реальной установке
 
 ### Этап 3 — About и Report Issue
-- [ ] About-диалог: версия, credits (yt-dlp, LRCLIB, Musixmatch, Genius, Tauri, …),
-      дисклеймер, ссылки
+- [x] About-диалог (`src/components/layout/about-dialog.tsx`): версия, credits
+      (yt-dlp, LRCLIB, Musixmatch, Genius, Tauri, shadcn, TanStack), дисклеймер,
+      GPL-ссылка, кнопки GitHub / Check for updates. Последний «Soon»-пункт меню
+      убран
 - [x] Report Issue → предзаполненный GitHub issue с диагностикой (версия, ОС) —
       открывает `NUber-dev/YTubic/issues/new` через plugin-opener
 - [ ] (опц.) экран Third-party licenses
 
 ### Этап 4 — релиз v0.1.0
-- [ ] Тег v0.1.0 → CI собирает → проверить draft-release → опубликовать
+- [x] Тег v0.1.0 → release.yml собрал **draft-release** (2026-07-05, 8м55с):
+      `YTubic_0.1.0_x64-setup.exe` + `.sig` + `latest.json` — весь конвейер
+      подписи/апдейтера работает
+- [ ] Проверить инсталлятор на чистой VM (первый запуск, скачивание yt-dlp,
+      логин, воспроизведение) → **опубликовать релиз вручную**
+- [ ] После публикации v0.1.1 — проверить, что установленный v0.1.0 сам
+      предлагает обновление (latest.json резолвится только у опубликованных)
 - [ ] Пострелизный мониторинг issues; план быстрого патча на случай поломки yt-dlp
 
 ### Отложено / после релиза
