@@ -36,6 +36,7 @@ import {
   ProgressSlider,
   VolumeControl,
   formatTime,
+  repeatLabel,
   useITunesCover,
 } from "@/components/layout/player-bar";
 import { PlayerMoreMenu } from "@/components/layout/player-more-menu";
@@ -202,16 +203,21 @@ export function PlayerBarBottom() {
           >
             <SkipForwardIcon className="fill-current" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Repeat"
-            aria-pressed={repeat !== "off"}
-            onClick={cycleRepeat}
-            className={cn(repeat !== "off" && "text-brand")}
-          >
-            {repeat === "one" ? <Repeat1Icon /> : <RepeatIcon />}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={repeatLabel(repeat)}
+                aria-pressed={repeat !== "off"}
+                onClick={cycleRepeat}
+                className={cn(repeat !== "off" && "text-brand")}
+              >
+                {repeat === "one" ? <Repeat1Icon /> : <RepeatIcon />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{repeatLabel(repeat)}</TooltipContent>
+          </Tooltip>
         </div>
 
         {/* RIGHT wing: secondary actions, justified to the right edge. */}

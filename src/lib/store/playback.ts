@@ -290,7 +290,14 @@ const playbackStateCreator: StateCreator<PlaybackState> = (set, get) => ({
   next: () => {
     const { queue, index, repeat, shuffle } = get();
     if (queue.length === 0) return;
-    if (repeat === "one") {
+    // Replaying the *current* slot in place: repeat-one always, and
+    // repeat-all when the queue holds a single track (wrapping lands
+    // back on the same index). Route both through pendingSeek so the
+    // audio engine actually restarts the element — flipping status to
+    // "loading" wouldn't, because its resolve effect keys on
+    // [videoId, index] and neither changes here, leaving the finished
+    // element paused and playback stalled on the loader.
+    if (repeat === "one" || (repeat === "all" && queue.length === 1)) {
       set({ position: 0, pendingSeek: 0, playing: true });
       return;
     }

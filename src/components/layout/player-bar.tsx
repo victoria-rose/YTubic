@@ -45,7 +45,7 @@ import {
 } from "@/lib/store/track-source";
 import { findAlternateVideoId } from "@/lib/innertube/alternate-source";
 import { lookupITunesCover, cacheCoverToDisk } from "@/lib/cover-art";
-import type { QueueTrack } from "@/lib/store/playback";
+import type { QueueTrack, RepeatMode } from "@/lib/store/playback";
 
 /**
  * Look up a 3000×3000 studio cover from iTunes for the now-playing
@@ -84,6 +84,20 @@ export function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+/**
+ * Human label for the current repeat mode. Doubles as the button's
+ * tooltip and its `aria-label` so the three states (off → all → one)
+ * are distinguishable — otherwise "off" and "all" differ only by the
+ * icon's tint, which reads as "nothing happened" on the first click.
+ */
+export function repeatLabel(repeat: RepeatMode): string {
+  return repeat === "one"
+    ? "Repeat one"
+    : repeat === "all"
+      ? "Repeat all"
+      : "Repeat off";
 }
 
 /**
@@ -605,16 +619,21 @@ export function PlayerBar({
           >
             <SkipForwardIcon className="fill-current" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Repeat"
-            aria-pressed={repeat !== "off"}
-            onClick={cycleRepeat}
-            className={cn(repeat !== "off" && "text-brand")}
-          >
-            {repeat === "one" ? <Repeat1Icon /> : <RepeatIcon />}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={repeatLabel(repeat)}
+                aria-pressed={repeat !== "off"}
+                onClick={cycleRepeat}
+                className={cn(repeat !== "off" && "text-brand")}
+              >
+                {repeat === "one" ? <Repeat1Icon /> : <RepeatIcon />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{repeatLabel(repeat)}</TooltipContent>
+          </Tooltip>
         </div>
       </div>
 

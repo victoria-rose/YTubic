@@ -186,9 +186,12 @@ export function useAudioEngine() {
         usePlaybackStore.getState().setPlaying(false);
       });
     // `index` is in the deps so advancing to a different queue slot that
-    // holds the *same* videoId (duplicate in a playlist, radio dupes,
-    // repeat-all on a 1-track queue) still re-resolves and plays instead
-    // of stalling on "loading" — videoId/streamVideoId alone wouldn't change.
+    // holds the *same* videoId (a duplicate in a playlist, radio dupes)
+    // still re-resolves and plays instead of stalling on "loading" —
+    // videoId/streamVideoId alone wouldn't change. Repeating a *single*
+    // track (repeat-one, or repeat-all on a 1-track queue) keeps the same
+    // index, so the store replays it via pendingSeek instead — see
+    // `next()` in store/playback.ts.
   }, [streamVideoId, videoId, index]);
 
   // Play / pause follow store.
