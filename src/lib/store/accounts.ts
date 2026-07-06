@@ -137,20 +137,23 @@ export function useAccountsChangedListener(): void {
       resetInnertube();
       clearPrefetchMemo();
 
-      // 5. Query cache. `clear` drops every cached body so the UI
-      //    flips to loading states; the follow-up `invalidateQueries`
-      //    nudges all active observers to refetch immediately rather
-      //    than waiting for the next mount.
-      qc.clear();
-      void qc.invalidateQueries();
+      // 5. Query cache. `resetQueries` puts every query back to its
+      //    initial empty state and refetches the ones with mounted
+      //    observers. Not `clear()` + `invalidateQueries()`: clear
+      //    empties the cache map, the follow-up invalidate then
+      //    matches nothing, and a screen that stays mounted through
+      //    the switch (Home, when the user switches accounts from
+      //    the sidebar) keeps showing the old account's data from
+      //    its now-detached observer instead of refetching.
+      void qc.resetQueries();
 
       // 6. Send the user to Home. Account-scoped routes (a playlist
       //    the previous account had access to, a library page) can't
-      //    keep showing valid state after a switch — a forced
+      //    keep showing valid state after a switch, so a forced
       //    navigate is the cheapest way to land somewhere that works
       //    for any account. If we're already on "/", the navigate is
-      //    a no-op but step 5 above has already invalidated the home
-      //    feed so it refetches in place.
+      //    a no-op but step 5 has already reset the home feed query,
+      //    which refetches in place.
       void navigate({ to: "/" });
     }).then((un) => {
       if (cancelled) un();
