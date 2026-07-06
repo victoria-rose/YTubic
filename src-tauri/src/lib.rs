@@ -149,6 +149,17 @@ struct Account {
     name: String,
     #[serde(default, rename = "photoUrl")]
     photo_url: Option<String>,
+    /// Brand-channel identity within this Google account. `None` means
+    /// the personal (default) channel. Sent as `X-Goog-PageId` on
+    /// InnerTube requests; library, likes and home are scoped to it.
+    #[serde(default, rename = "pageId")]
+    page_id: Option<String>,
+    /// Display meta for the selected channel so the UI can show it
+    /// without a network round-trip.
+    #[serde(default, rename = "channelName")]
+    channel_name: Option<String>,
+    #[serde(default, rename = "channelPhotoUrl")]
+    channel_photo_url: Option<String>,
     /// Unix seconds when this account was first added.
     #[serde(default, rename = "addedAt")]
     added_at: i64,
@@ -175,6 +186,12 @@ struct AccountSummary {
     name: String,
     #[serde(rename = "photoUrl")]
     photo_url: Option<String>,
+    #[serde(rename = "pageId")]
+    page_id: Option<String>,
+    #[serde(rename = "channelName")]
+    channel_name: Option<String>,
+    #[serde(rename = "channelPhotoUrl")]
+    channel_photo_url: Option<String>,
     #[serde(rename = "isActive")]
     is_active: bool,
 }
@@ -841,6 +858,9 @@ async fn list_accounts(app: tauri::AppHandle) -> Result<Vec<AccountSummary>, Str
                 email: a.email,
                 name: a.name,
                 photo_url: a.photo_url,
+                page_id: a.page_id,
+                channel_name: a.channel_name,
+                channel_photo_url: a.channel_photo_url,
                 is_active,
             }
         })
@@ -964,7 +984,12 @@ async fn update_account_meta(
         idx.active = Some(other_id);
     } else if let Some(acct) = idx.accounts.iter_mut().find(|a| a.id == id) {
         acct.name = name;
-        acct.email = email;
+        // A brand-channel identity's /account_menu carries no email;
+        // don't let that backfill wipe the stored one (it drives the
+        // re-login dedup above).
+        if !email.is_empty() {
+            acct.email = email;
+        }
         acct.photo_url = photo_url;
     } else {
         return Err(format!("no such account: {id}"));
@@ -983,6 +1008,67 @@ async fn update_account_meta(
 #[tauri::command]
 async fn get_active_account_id(app: tauri::AppHandle) -> Result<Option<String>, String> {
     Ok(read_index(&app).await.active)
+}
+
+/// Select which YouTube channel (personal or brand) an account acts
+/// as. `pageId: None` selects the personal channel. When the choice on
+/// the ACTIVE account actually changes we emit `accounts-changed`:
+/// library, likes and home are channel-scoped, so the frontend must
+/// run the same full reset as an account switch.
+#[tauri::command]
+async fn set_account_channel(
+    app: tauri::AppHandle,
+    id: String,
+    #[allow(non_snake_case)] pageId: Option<String>,
+    #[allow(non_snake_case)] channelName: Option<String>,
+    #[allow(non_snake_case)] channelPhotoUrl: Option<String>,
+) -> Result<(), String> {
+    let mut idx = read_index(&app).await;
+    let is_active = idx.active.as_deref() == Some(id.as_str());
+    let acct = idx
+        .accounts
+        .iter_mut()
+        .find(|a| a.id == id)
+        .ok_or_else(|| format!("no such account: {id}"))?;
+    let changed = acct.page_id != pageId;
+    acct.page_id = pageId;
+    acct.channel_name = channelName;
+    acct.channel_photo_url = channelPhotoUrl;
+    write_index(&app, &idx).await?;
+    if changed && is_active {
+        let _ = app.emit("accounts-changed", ());
+    }
+    Ok(())
+}
+
+/// Cookie header plus the active account's brand-channel page id in a
+/// single call. The InnerTube client sends the page id back as the
+/// `X-Goog-PageId` header. Bundling it with the cookie read (instead
+/// of a second command) means a cold start can't pair fresh cookies
+/// with a stale page id, or vice versa.
+#[derive(Clone, Debug, serde::Serialize)]
+struct AuthContext {
+    cookie: String,
+    #[serde(rename = "pageId")]
+    page_id: Option<String>,
+}
+
+#[tauri::command]
+async fn get_auth_context(
+    app: tauri::AppHandle,
+    host: String,
+) -> Result<AuthContext, String> {
+    let cookie = read_cookie_header(&app, &host).await;
+    let page_id = if cookie.is_empty() {
+        None
+    } else {
+        let idx = read_index(&app).await;
+        idx.accounts
+            .iter()
+            .find(|a| idx.active.as_deref() == Some(a.id.as_str()))
+            .and_then(|a| a.page_id.clone())
+    };
+    Ok(AuthContext { cookie, page_id })
 }
 
 /// File (under the store plugin's default dir) + key holding the
@@ -2112,12 +2198,14 @@ pub fn run() {
             get_stream_base_url,
             start_login,
             get_cookie_header,
+            get_auth_context,
             is_logged_in,
             clear_cookies,
             list_accounts,
             switch_account,
             remove_account,
             update_account_meta,
+            set_account_channel,
             get_active_account_id,
             list_cache,
             delete_cache_entries,

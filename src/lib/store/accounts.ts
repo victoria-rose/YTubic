@@ -5,7 +5,9 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { resetInnertube } from "@/lib/innertube/client";
 import { fetchAccountInfo } from "@/lib/innertube/account";
+import { fetchChannelList } from "@/lib/innertube/channels";
 import { clearPrefetchMemo } from "@/lib/stream";
+import { openChannelPicker } from "@/lib/store/channel-picker";
 import { usePlaybackStore } from "@/lib/store/playback";
 import { usePinnedPlaylistsStore } from "@/lib/store/pinned-playlists";
 import { usePremiumStore } from "@/lib/store/premium";
@@ -17,6 +19,10 @@ export type AccountSummary = {
   email: string;
   name: string;
   photoUrl: string | null;
+  /** Brand-channel page id this account acts as; null = personal channel. */
+  pageId: string | null;
+  channelName: string | null;
+  channelPhotoUrl: string | null;
   isActive: boolean;
 };
 
@@ -78,6 +84,16 @@ export function useLoginSuccessListener(): void {
       void qc.invalidateQueries({ queryKey: ["active-account-id"] });
       void qc.invalidateQueries({ queryKey: ["auth-logged-in"] });
       void qc.invalidateQueries({ queryKey: ["account-info"] });
+      // A Google account can hold several YouTube channels, and the
+      // library/likes belong to the channel rather than the account.
+      // Right after a fresh sign-in is the moment to offer the choice,
+      // when there is one to make. Best-effort: on failure the picker
+      // stays reachable from Settings and the sidebar account menu.
+      void fetchChannelList()
+        .then((list) => {
+          if (list.length > 1) openChannelPicker();
+        })
+        .catch(() => {});
     }).then((un) => {
       if (cancelled) un();
       else dispose = un;

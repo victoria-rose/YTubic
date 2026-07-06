@@ -9,6 +9,7 @@ import {
   LogOutIcon,
   RocketIcon,
   UserRoundIcon,
+  UsersRoundIcon,
   XIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -19,6 +20,7 @@ import { Group, SettingRow, TabPane } from "@/components/settings/primitives";
 import { fetchAccountInfo } from "@/lib/innertube/account";
 import { resetInnertube } from "@/lib/innertube/client";
 import { removeAccount, useAccounts } from "@/lib/store/accounts";
+import { openChannelPicker } from "@/lib/store/channel-picker";
 import { useSettingsStore } from "@/lib/store/settings";
 
 export function GeneralTab() {
@@ -156,6 +158,26 @@ function AccountGroup() {
           </Button>
         )}
       </div>
+      {loggedIn.data ? (
+        <SettingRow
+          icon={UsersRoundIcon}
+          title="YouTube channel"
+          description={
+            active?.channelName
+              ? `Acting as ${active.channelName}. Library and likes are scoped to this channel.`
+              : "Library and likes are scoped to a channel, not the whole Google account. Pick which of your channels YTubic uses."
+          }
+          control={
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openChannelPicker()}
+            >
+              Switch channel
+            </Button>
+          }
+        />
+      ) : null}
     </Group>
   );
 }

@@ -70,7 +70,7 @@ function buildContext(): {
   };
 }
 
-const DESKTOP_UA =
+export const DESKTOP_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
 const BASE_HEADERS: Record<string, string> = {
@@ -96,45 +96,55 @@ async function sha1Hex(text: string): Promise<string> {
     .join("");
 }
 
-// In-process cache for the cookie header. Without it every browse / search
+/**
+ * Cookie header plus the active brand-channel page id, as one unit.
+ * They describe the same identity, so caching them separately could
+ * pair fresh cookies with a stale channel (or vice versa) across a
+ * sign-in or a channel switch.
+ */
+type AuthContext = { cookie: string; pageId: string | null };
+
+const EMPTY_AUTH: AuthContext = { cookie: "", pageId: null };
+
+// In-process cache for the auth context. Without it every browse / search
 // / next call invokes the Rust side, which hits disk + DPAPI-decrypts the
-// jar — a 1000-track playlist scroll would do that 10+ times for no gain.
+// jar (a 1000-track playlist scroll would do that 10+ times for no gain).
 // TTL keeps us responsive to silent re-logins (different webview session
 // dropping a fresh SID); `resetAuthCache()` is the explicit invalidation
 // path called from `resetInnertube()` after sign-in / sign-out.
-const COOKIE_CACHE_TTL_MS = 5 * 60 * 1000;
-let cookieCache: { value: string; loadedAt: number } | null = null;
-let cookiePromise: Promise<string> | null = null;
+const AUTH_CACHE_TTL_MS = 5 * 60 * 1000;
+let authCache: { value: AuthContext; loadedAt: number } | null = null;
+let authPromise: Promise<AuthContext> | null = null;
 // Bumped by resetAuthCache(). An in-flight load captures the epoch at start
-// and discards its result if a reset happened meanwhile — otherwise the
+// and discards its result if a reset happened meanwhile; otherwise the
 // pre-reset value would be written back and served for the whole TTL after
 // a sign-in/out completes mid-fetch.
-let cookieEpoch = 0;
+let authEpoch = 0;
 
-async function loadCookieHeader(): Promise<string> {
+async function loadAuthContext(): Promise<AuthContext> {
   const now = Date.now();
-  if (cookieCache && now - cookieCache.loadedAt < COOKIE_CACHE_TTL_MS) {
-    return cookieCache.value;
+  if (authCache && now - authCache.loadedAt < AUTH_CACHE_TTL_MS) {
+    return authCache.value;
   }
-  if (cookiePromise) return cookiePromise;
-  const epoch = cookieEpoch;
-  cookiePromise = invoke<string>("get_cookie_header", {
+  if (authPromise) return authPromise;
+  const epoch = authEpoch;
+  authPromise = invoke<AuthContext>("get_auth_context", {
     host: "music.youtube.com",
   }).then(
     (value) => {
-      cookiePromise = null;
-      if (epoch !== cookieEpoch) return "";
-      cookieCache = { value, loadedAt: Date.now() };
+      authPromise = null;
+      if (epoch !== authEpoch) return EMPTY_AUTH;
+      authCache = { value, loadedAt: Date.now() };
       return value;
     },
     () => {
-      cookiePromise = null;
-      if (epoch !== cookieEpoch) return "";
-      cookieCache = { value: "", loadedAt: Date.now() };
-      return "";
+      authPromise = null;
+      if (epoch !== authEpoch) return EMPTY_AUTH;
+      authCache = { value: EMPTY_AUTH, loadedAt: Date.now() };
+      return EMPTY_AUTH;
     },
   );
-  return cookiePromise;
+  return authPromise;
 }
 
 /**
@@ -142,24 +152,27 @@ async function loadCookieHeader(): Promise<string> {
  * sign-in / sign-out so the next request re-reads the fresh jar.
  */
 export function resetAuthCache(): void {
-  cookieCache = null;
-  cookiePromise = null;
-  cookieEpoch++;
+  authCache = null;
+  authPromise = null;
+  authEpoch++;
 }
 
 /**
  * Build the Cookie + SAPISIDHASH auth headers needed to hit
- * authenticated InnerTube endpoints (/browse FEmusic_liked_*, etc.).
- * Returns an empty object when the user has no cookies imported —
- * callers fall back to anonymous requests.
+ * authenticated InnerTube endpoints (/browse FEmusic_liked_*, etc.),
+ * plus `X-Goog-PageId` when the account acts as a brand channel
+ * (library, likes and home are scoped to the channel, not the Google
+ * account). Returns an empty object when the user has no cookies
+ * imported; callers fall back to anonymous requests.
  */
-async function authHeaders(): Promise<Record<string, string>> {
-  const cookie = await loadCookieHeader();
+export async function authHeaders(): Promise<Record<string, string>> {
+  const { cookie, pageId } = await loadAuthContext();
   if (!cookie) return {};
   const sapisid =
     cookie.match(/(?:^|;\s*)__Secure-3PAPISID=([^;]+)/)?.[1] ??
     cookie.match(/(?:^|;\s*)SAPISID=([^;]+)/)?.[1];
   const headers: Record<string, string> = { Cookie: cookie };
+  if (pageId) headers["X-Goog-PageId"] = pageId;
   if (sapisid) {
     const ts = Math.floor(Date.now() / 1000);
     const hash = await sha1Hex(`${ts} ${sapisid} ${YTM_ORIGIN}`);

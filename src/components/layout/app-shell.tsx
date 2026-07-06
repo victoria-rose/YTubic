@@ -13,6 +13,7 @@ import { DragSnapOverlay } from "@/components/layout/drag-snap-overlay";
 import { EntityPageHeader } from "@/components/layout/entity-page-header";
 import { SettingsDialog } from "@/components/settings/settings-dialog";
 import { PremiumGateDialog } from "@/components/layout/premium-gate-dialog";
+import { ChannelPickerDialog } from "@/components/layout/channel-picker-dialog";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAudioEngine } from "@/lib/audio-engine";
@@ -232,6 +233,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <DragSnapOverlay />
           <SettingsDialog />
           <PremiumGateDialog />
+          <ChannelPickerDialog />
         </div>
       </SidebarProvider>
       <Toaster />

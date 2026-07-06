@@ -14,6 +14,7 @@ import {
   PinOffIcon,
   UserPlusIcon,
   UserCogIcon,
+  UsersRoundIcon,
   CreditCardIcon,
   LogOutIcon,
   ExternalLinkIcon,
@@ -48,6 +49,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { usePinned, usePinnedPlaylistsStore } from "@/lib/store/pinned-playlists";
+import { openChannelPicker } from "@/lib/store/channel-picker";
 import { openSettings } from "@/lib/store/settings-dialog";
 import { fetchAccountInfo } from "@/lib/innertube/account";
 import { resetInnertube } from "@/lib/innertube/client";
@@ -382,6 +384,10 @@ function UserProfile() {
                 <DropdownMenuSeparator />
               </>
             ) : null}
+            <DropdownMenuItem onSelect={() => openChannelPicker()}>
+              <UsersRoundIcon />
+              Switch channel
+            </DropdownMenuItem>
             <DropdownMenuItem onSelect={addAccount}>
               <UserPlusIcon />
               Add another account
