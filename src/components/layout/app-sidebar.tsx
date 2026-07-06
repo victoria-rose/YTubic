@@ -16,6 +16,7 @@ import {
   UserCogIcon,
   UsersRoundIcon,
   CreditCardIcon,
+  LogInIcon,
   LogOutIcon,
   ExternalLinkIcon,
   CheckIcon,
@@ -34,6 +35,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -228,6 +230,35 @@ function UserProfile() {
   });
   const accounts = useAccounts();
   const premiumStatus = usePremiumStore((s) => s.status);
+
+  // Signed out: the profile slot becomes a prominent primary sign-in
+  // button so a new user always has an obvious way in (not a muted menu
+  // row that blends into Settings). Same `start_login` flow as "Add
+  // another account". `=== false` (not `!loggedIn.data`) keeps it hidden
+  // while the auth check is still loading, so a signed-in user never
+  // sees a flash of it before their profile lands.
+  if (loggedIn.data === false) {
+    return (
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <Button
+            title="Sign in"
+            onClick={() => {
+              invoke("start_login").catch((e) =>
+                toast.error(`Sign-in failed: ${String(e)}`),
+              );
+            }}
+            className="h-9 w-full gap-2 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-0"
+          >
+            <LogInIcon />
+            <span className="group-data-[collapsible=icon]:hidden">
+              Sign in
+            </span>
+          </Button>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    );
+  }
 
   if (!loggedIn.data || !account.data) return null;
 
