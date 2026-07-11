@@ -38,6 +38,17 @@ export type WhatsNewEntry = {
  */
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: "0.3.1",
+    date: "July 2026",
+    image: "/whats-new/0.3.0.svg",
+    sections: [
+      {
+        heading: "Bug fix",
+        body: "Version 0.3.0 shipped with Last.fm scrobbling switched off because the release build was missing its API credentials. This update turns it back on, so you can connect your Last.fm account from the Integrations tab.",
+      },
+    ],
+  },
+  {
     version: "0.3.0",
     date: "July 2026",
     image: "/whats-new/0.3.0.svg",
