@@ -4,35 +4,33 @@ import type { Thumbnail as YtThumbnail } from "@/lib/innertube/types";
 
 /**
  * Snapshot of whatever the current route's `<EntityHeader>` published.
- * Consumed by `<EntityPageHeader>`, which sits at the top of the
- * content column (above `<main>`) and renders both the full hero and
- * the compact bar from the same data — switching between them on
- * scroll.
- *
- * Living outside `<main>` is what guarantees the bar naturally hides
- * the track list scrolling underneath: `<main>` clips its own
- * overflow, so its rows can never reach above the column's `<main>`
- * top edge. The bar inherits the app-wide blurred-cover tint from
- * `<BackgroundCover>` without needing any background of its own.
+ * Consumed by `<EntityPageHeader>`, which overlays the top of the
+ * content column. `headerHeight` reserves the expanded header space;
+ * it stays constant while the visual header follows the scroll.
  */
 export type EntityHeaderConfig = {
   title: string;
-  subtitle?: string;
+  subtitle?: ReactNode;
   metadata?: string;
-  description?: string;
   thumbnails: YtThumbnail[];
   round: boolean;
   onPlay?: () => void;
   onShuffle?: () => void;
   actions?: ReactNode;
+  toolbar?: ReactNode;
+  keepSubtitleInCompact?: boolean;
 };
 
 type State = {
   config: EntityHeaderConfig | null;
+  headerHeight: number;
   setConfig: (config: EntityHeaderConfig | null) => void;
+  setHeaderHeight: (height: number) => void;
 };
 
 export const useEntityHeaderStore = create<State>((set) => ({
   config: null,
+  headerHeight: 0,
   setConfig: (config) => set({ config }),
+  setHeaderHeight: (headerHeight) => set({ headerHeight }),
 }));

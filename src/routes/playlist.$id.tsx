@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import {
   AlertCircleIcon,
@@ -19,6 +19,7 @@ import {
 } from "@/lib/innertube/playlist";
 import type { ShelfItem } from "@/lib/innertube/types";
 import { EntityHeader } from "@/components/shared/entity-header";
+import { ExpandableText } from "@/components/shared/expandable-text";
 import { TrackList } from "@/components/shared/track-list";
 import { JumpToCurrentButton } from "@/components/shared/jump-to-current-button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -43,12 +44,32 @@ import {
 
 export const Route = createFileRoute("/playlist/$id")({
   component: PlaylistPageView,
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): {
+    view?: string;
+    t?: string;
+    a?: string;
+    aid?: string;
+    img?: string;
+    from?: string;
+  } => ({
+    view: typeof search.view === "string" ? search.view : undefined,
+    t: typeof search.t === "string" ? search.t : undefined,
+    a: typeof search.a === "string" ? search.a : undefined,
+    aid: typeof search.aid === "string" ? search.aid : undefined,
+    img: typeof search.img === "string" ? search.img : undefined,
+    from: typeof search.from === "string" ? search.from : undefined,
+  }),
 });
 
 type AnyPage = PlaylistFirstPage | PlaylistNextPage;
 
 function PlaylistPageView() {
   const { id } = Route.useParams();
+  const { view, t, a, aid, img, from } = Route.useSearch();
+  const isArtistTopSongs = view === "top-songs";
+  const openedFromArtist = from === "artist";
 
   const query = useInfiniteQuery<AnyPage, Error>({
     queryKey: ["playlist-pages", id],
@@ -77,8 +98,11 @@ function PlaylistPageView() {
   const header = pages[0] as PlaylistFirstPage | undefined;
   const tracks = useMemo(() => pages.flatMap((p) => p.tracks), [pages]);
   const sortedTracks = useMemo(
-    () => sortTracks(tracks, sortMode),
-    [tracks, sortMode],
+    () =>
+      isArtistTopSongs
+        ? sortTracksByPlayCount(tracks)
+        : sortTracks(tracks, sortMode),
+    [isArtistTopSongs, tracks, sortMode],
   );
   const visibleTracks = useMemo(() => {
     if (!normalizedQuery) return sortedTracks;
@@ -119,7 +143,12 @@ function PlaylistPageView() {
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, [query.hasNextPage, query.isFetchingNextPage, query.fetchNextPage, query.error]);
+  }, [
+    query.hasNextPage,
+    query.isFetchingNextPage,
+    query.fetchNextPage,
+    query.error,
+  ]);
 
   // When the user picks any non-default sort, eagerly drain all
   // continuations so the sort applies to the whole playlist, not just
@@ -169,29 +198,67 @@ function PlaylistPageView() {
     header.owner,
     header.trackCount ? `${header.trackCount} songs` : undefined,
   ].filter(Boolean) as string[];
+  const headerMetadata = isArtistTopSongs
+    ? undefined
+    : metadataParts.join(" • ");
 
   return (
     <div className="flex flex-col gap-8 px-6 pb-6 pt-3">
       <EntityHeader
-        title={header.title}
-        metadata={metadataParts.join(" • ")}
-        description={header.description}
-        thumbnails={header.thumbnails}
-        onPlay={() => {
-          if (tracks.length > 0) {
-            usePlaybackStore.getState().playShelfItems(tracks, 0);
-            usePlaybackStore.getState().setShuffle(false);
-          }
-        }}
-        onShuffle={() => {
-          if (tracks.length > 0) {
-            const start = Math.floor(Math.random() * tracks.length);
-            usePlaybackStore.getState().playShelfItems(tracks, start);
-            usePlaybackStore.getState().setShuffle(true);
-          }
-        }}
+        title={
+          isArtistTopSongs
+            ? t || "Top songs"
+            : openedFromArtist
+              ? t || header.title
+              : header.title
+        }
+        subtitle={
+          isArtistTopSongs || openedFromArtist ? (
+            aid && a ? (
+              <Link
+                to="/artist/$id"
+                params={{ id: aid }}
+                className="hover:text-foreground hover:underline"
+              >
+                {a}
+              </Link>
+            ) : (
+              a
+            )
+          ) : undefined
+        }
+        metadata={openedFromArtist ? undefined : headerMetadata}
+        thumbnails={
+          (isArtistTopSongs || openedFromArtist) && img
+            ? [{ url: img, width: 512, height: 512 }]
+            : header.thumbnails
+        }
+        round={isArtistTopSongs || openedFromArtist}
+        keepSubtitleInCompact={isArtistTopSongs || openedFromArtist}
+        onPlay={
+          openedFromArtist
+            ? undefined
+            : () => {
+                if (tracks.length > 0) {
+                  usePlaybackStore.getState().playShelfItems(tracks, 0);
+                  usePlaybackStore.getState().setShuffle(false);
+                }
+              }
+        }
+        onShuffle={
+          openedFromArtist
+            ? undefined
+            : () => {
+                if (tracks.length > 0) {
+                  const start = Math.floor(Math.random() * tracks.length);
+                  usePlaybackStore.getState().playShelfItems(tracks, start);
+                  usePlaybackStore.getState().setShuffle(true);
+                }
+              }
+        }
         actions={
-          isLikedSongs ? null : pinned ? (
+          isArtistTopSongs ||
+          openedFromArtist ? null : isLikedSongs ? null : pinned ? (
             <Button variant="outline" onClick={() => unpin(id)}>
               <PinOffIcon />
               Unpin
@@ -213,16 +280,29 @@ function PlaylistPageView() {
             </Button>
           )
         }
+        toolbar={
+          isArtistTopSongs ? (
+            <div className="flex items-center">
+              <SearchInput value={searchQuery} onChange={setSearchQuery} />
+            </div>
+          ) : undefined
+        }
       />
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <SearchInput value={searchQuery} onChange={setSearchQuery} />
-          <SortMenu
-            mode={sortMode}
-            onChange={(m) => setSortMode(id, m)}
-            isLikedSongs={isLikedSongs}
-          />
-        </div>
+      {!isArtistTopSongs && header.description ? (
+        <ExpandableText key={header.description} text={header.description} />
+      ) : null}
+
+      <div className={isArtistTopSongs ? "contents" : "flex flex-col gap-2"}>
+        {!isArtistTopSongs ? (
+          <div className="flex items-center gap-2">
+            <SearchInput value={searchQuery} onChange={setSearchQuery} />
+            <SortMenu
+              mode={sortMode}
+              onChange={(m) => setSortMode(id, m)}
+              isLikedSongs={isLikedSongs}
+            />
+          </div>
+        ) : null}
         {(sortMode !== "default" || normalizedQuery) && query.hasNextPage ? (
           <span className="flex items-center gap-2 text-xs text-muted-foreground">
             <Loader2Icon className="size-3 animate-spin" />
@@ -240,7 +320,7 @@ function PlaylistPageView() {
           No tracks match “{searchQuery.trim()}”.
         </div>
       ) : (
-        <TrackList tracks={visibleTracks} />
+        <TrackList tracks={visibleTracks} showPlays={isArtistTopSongs} />
       )}
 
       {query.hasNextPage && (
@@ -262,10 +342,46 @@ function PlaylistPageView() {
   );
 }
 
-function sortTracks(
-  tracks: ShelfItem[],
-  mode: PlaylistSortMode,
-): ShelfItem[] {
+function sortTracksByPlayCount(tracks: ShelfItem[]): ShelfItem[] {
+  if (tracks.length < 2) return tracks;
+  return tracks
+    .map((track, index) => ({ track, index }))
+    .sort((a, b) => {
+      const difference =
+        playCountValue(b.track.playCount) - playCountValue(a.track.playCount);
+      return difference || a.index - b.index;
+    })
+    .map(({ track }) => track);
+}
+
+/** Convert YT's preformatted values such as "108M plays" to a number. */
+function playCountValue(text?: string): number {
+  if (!text) return -1;
+  const match = text
+    .trim()
+    .toUpperCase()
+    .match(/([\d.,]+)\s*([KMB])?/);
+  if (!match) return -1;
+
+  const suffix = match[2];
+  const numericText = suffix
+    ? match[1].replace(",", ".")
+    : match[1].replace(/[^\d]/g, "");
+  const value = Number(numericText);
+  if (!Number.isFinite(value)) return -1;
+
+  const multiplier =
+    suffix === "B"
+      ? 1_000_000_000
+      : suffix === "M"
+        ? 1_000_000
+        : suffix === "K"
+          ? 1_000
+          : 1;
+  return value * multiplier;
+}
+
+function sortTracks(tracks: ShelfItem[], mode: PlaylistSortMode): ShelfItem[] {
   if (mode === "default" || tracks.length < 2) return tracks;
   const copy = tracks.slice();
   switch (mode) {
@@ -283,8 +399,7 @@ function sortTracks(
       copy.sort((a, b) => b.title.localeCompare(a.title));
       break;
     case "artist-asc": {
-      const key = (t: ShelfItem) =>
-        t.artists?.[0]?.name ?? t.subtitle ?? "";
+      const key = (t: ShelfItem) => t.artists?.[0]?.name ?? t.subtitle ?? "";
       copy.sort((a, b) => key(a).localeCompare(key(b)));
       break;
     }

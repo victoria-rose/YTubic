@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { memo, useLayoutEffect, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { PlayIcon, PauseIcon, Volume2Icon } from "lucide-react";
 import { Link } from "@tanstack/react-router";
@@ -26,12 +26,12 @@ type Props = {
   className?: string;
 };
 
-// Estimated height of a single row including the 2px gap below it
-// (p-2 + 40px thumb + roughly 2px gap from `gap-0.5`). The virtualizer
+// Height of a row plus the explicit 2px gap below it
+// (p-2 + 40px thumb + 2px spacing). The virtualizer
 // also measures actual rendered rows via `measureElement`, so a slight
 // mismatch only affects the initial scroll-bar size before measurements
 // settle.
-const ROW_SIZE = 56;
+const ROW_SIZE = 58;
 
 function formatDuration(seconds?: number): string {
   if (!seconds || Number.isNaN(seconds)) return "—";
@@ -214,6 +214,7 @@ export function TrackList({
                 top: 0,
                 left: 0,
                 right: 0,
+                paddingBottom: 2,
                 transform: `translateY(${vi.start - virtualizer.options.scrollMargin}px)`,
               }}
             >
@@ -250,7 +251,7 @@ type RowProps = {
   videoSourceSelected: boolean;
 };
 
-function TrackRow({
+const TrackRow = memo(function TrackRow({
   track: t,
   idx,
   tracks,
@@ -267,8 +268,8 @@ function TrackRow({
       data-videoid={t.id}
       style={{ gridTemplateColumns: gridTemplate }}
       className={cn(
-        "group grid items-center gap-3 rounded-lg p-2 cursor-pointer",
-        isActive ? "bg-black/25" : "hover:bg-surface",
+        "group grid cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors",
+        isActive ? "bg-black/25" : "hover:bg-accent/60",
       )}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest("a")) return;
@@ -413,4 +414,4 @@ function TrackRow({
       {row}
     </TrackContextMenu>
   );
-}
+});

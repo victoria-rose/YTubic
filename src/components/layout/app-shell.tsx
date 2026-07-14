@@ -11,6 +11,7 @@ import { PlayerBarBottom } from "@/components/layout/player-bar-bottom";
 import { FloatingPlayerSync } from "@/components/layout/floating-player-sync";
 import { DragSnapOverlay } from "@/components/layout/drag-snap-overlay";
 import { EntityPageHeader } from "@/components/layout/entity-page-header";
+import { useEntityHeaderStore } from "@/lib/store/entity-header";
 import { SettingsDialog } from "@/components/settings/settings-dialog";
 import { PremiumGateDialog } from "@/components/layout/premium-gate-dialog";
 import { ChannelPickerDialog } from "@/components/layout/channel-picker-dialog";
@@ -103,7 +104,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   // covers the "Nothing playing" empty state at first launch and
   // after the queue is cleared. The mode itself stays the same; the
   // player just reappears in the chosen slot once a track is loaded.
-  const hasTrack = usePlaybackStore((s) => s.index >= 0 && s.index < s.queue.length);
+  const hasTrack = usePlaybackStore(
+    (s) => s.index >= 0 && s.index < s.queue.length,
+  );
   // Set when we close the floating window programmatically (queue emptied)
   // so the player-window-closed handler doesn't mistake it for the user
   // clicking X and revert the persisted floating layout preference.
@@ -219,22 +222,22 @@ export function AppShell({ children }: { children: ReactNode }) {
               )}
             >
               {/* Route entity header (playlist / album / artist).
-                  Lives ABOVE <main> in flex flow so that
-                  (a) a transparent bar inherits the app-wide
-                      <BackgroundCover> tint directly, and
-                  (b) track rows inside <main> are clipped by <main>'s
-                      overflow and never appear behind the bar. */}
-              <EntityPageHeader />
-              {/* Plain scroller — NOT Radix ScrollArea. Radix wraps the
-                  content in `display: table; min-width: 100%` which grows
-                  to intrinsic width and defeats any nested `overflow-x`
-                  (our horizontal carousels would never clip). */}
-              <main
-                ref={mainRef}
-                className="app-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
-              >
-                {children}
-              </main>
+                  An absolute overlay outside the scroll flow. <main>
+                  always reserves the expanded height as padding, keeping
+                  content movement exactly aligned with scrollTop. */}
+              {/* The wrapper is the header's positioning context. It
+                  sits INSIDE the column's conditional right padding
+                  (the reserved player-card slot) — anchoring the
+                  absolute header to the column itself would stretch it
+                  across the padding box, under the player card. */}
+              <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+                <EntityPageHeader />
+                {/* Plain scroller — NOT Radix ScrollArea. Radix wraps the
+                    content in `display: table; min-width: 100%` which grows
+                    to intrinsic width and defeats any nested `overflow-x`
+                    (our horizontal carousels would never clip). */}
+                <EntityScroller mainRef={mainRef}>{children}</EntityScroller>
+              </div>
               {mode === "bottom" && hasTrack && <PlayerBarBottom />}
             </div>
             {mode === "right" && hasTrack && <PlayerBar />}
@@ -249,6 +252,36 @@ export function AppShell({ children }: { children: ReactNode }) {
       </SidebarProvider>
       <Toaster />
     </TooltipProvider>
+  );
+}
+
+/**
+ * The shared app scroller. Reserves the entity header's expanded
+ * height as padding-top whenever a route publishes a header config —
+ * the header itself is an absolute overlay (see EntityPageHeader), so
+ * this padding is the only thing keeping content below it. Isolated
+ * in its own component so the padding-top updates don't re-render the
+ * whole AppShell.
+ */
+function EntityScroller({
+  mainRef,
+  children,
+}: {
+  mainRef: React.RefObject<HTMLElement | null>;
+  children: ReactNode;
+}) {
+  const headerPad = useEntityHeaderStore((s) =>
+    s.config ? s.headerHeight : 0,
+  );
+  return (
+    <main
+      ref={mainRef}
+      className="app-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
+    >
+      <div className="app-scroll-content" style={{ paddingTop: headerPad }}>
+        {children}
+      </div>
+    </main>
   );
 }
 
