@@ -44,13 +44,15 @@ Built as a reaction to the sluggish webview-wrapper experience — YTubic talks 
 
 ## Install
 
-Download the latest installer from the [Releases](../../releases) page and run it.
+YTubic is released in two separate editions on the [Releases](../../releases) page:
 
-- **Windows 10/11 only** for now.
-- On first launch the app downloads its own copy of yt-dlp (~12 MB) into its
-  data folder and keeps it updated automatically.
-- Signing in is optional: browse and playback work anonymously; sign in to get
-  your library, likes, and playlists.
+*   **Premium Patched Edition (Tag: `v*-patched`)**: Bypasses the YouTube Music Premium paywall checks locally, letting you stream high-quality audio and play tracks even if your Google account does not have an active Music Premium subscription.
+*   **Cookie Patched Edition (Tag: `v*-cookie-patched`)**: A clean, authentic build that does not bypass the paywall. It includes our robust cookie domain matching and session import fixes to prevent random logouts for users who already have an active YouTube Music Premium subscription.
+
+### Requirements & Setup
+*   **Windows 10/11 only** for now.
+*   On first launch, the app downloads its own copy of yt-dlp (~12 MB) into its data folder and keeps it updated automatically.
+*   Signing in is optional: browsing works anonymously; sign in (or import cookies under **Settings** → **Account**) to unlock your library, likes, and playlists.
 
 ### FAQ
 
