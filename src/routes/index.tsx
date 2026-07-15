@@ -1,16 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fetchHomeFeedPage } from "@/lib/innertube/home";
 import { ShelfCarousel } from "@/components/shared/shelf-carousel";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircleIcon, Loader2Icon } from "lucide-react";
+import { AlertCircleIcon, Loader2Icon, LogInIcon, CookieIcon, LockIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { invoke } from "@tauri-apps/api/core";
+import { openSettings } from "@/lib/store/settings-dialog";
+import { listen } from "@tauri-apps/api/event";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
 function HomePage() {
+  const [signingIn, setSigningIn] = useState(false);
+
   const {
     data,
     isLoading,
@@ -27,13 +34,40 @@ function HomePage() {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
   });
 
+  useEffect(() => {
+    const unlistenSuccess = listen("login-success", () => {
+      setSigningIn(false);
+      refetch();
+    });
+    const unlistenCancel = listen("login-cancelled", () => {
+      setSigningIn(false);
+    });
+    const unlistenFailed = listen("login-failed", () => {
+      setSigningIn(false);
+    });
+
+    return () => {
+      unlistenSuccess.then((fn) => fn());
+      unlistenCancel.then((fn) => fn());
+      unlistenFailed.then((fn) => fn());
+    };
+  }, [refetch]);
+
+  const signIn = async () => {
+    setSigningIn(true);
+    try {
+      await invoke("start_login");
+    } catch (e) {
+      setSigningIn(false);
+      toast.error(String(e));
+    }
+  };
+
   const shelves = data?.pages.flatMap((p) => p.shelves) ?? [];
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const node = sentinelRef.current;
-    // `error` guard: stop auto-loading after a failed continuation so the
-    // still-visible sentinel doesn't re-fire fetchNextPage in a loop.
     if (!node || !hasNextPage || isFetchingNextPage || error) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -44,6 +78,48 @@ function HomePage() {
     observer.observe(node);
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage, error]);
+
+  const isAuthError =
+    error &&
+    ((error as Error).message.includes("401") ||
+      (error as Error).message.toLowerCase().includes("authentication") ||
+      (error as Error).message.toLowerCase().includes("credential"));
+
+  if (isAuthError) {
+    return (
+      <div className="flex min-h-[75vh] flex-col items-center justify-center px-6 text-center">
+        <div className="flex max-w-sm flex-col items-center gap-6 rounded-xl border border-border/50 bg-card p-8 shadow-sm">
+          <div className="flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <LockIcon className="size-6" />
+          </div>
+          <div className="flex flex-col gap-2">
+            <h2 className="text-xl font-bold tracking-tight">Sign in to YouTube Music</h2>
+            <p className="text-[13px] text-muted-foreground leading-normal">
+              YTubic personalized home feed, library, and playlists require a signed-in YouTube Music account.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 w-full">
+            <Button onClick={signIn} disabled={signingIn} className="w-full gap-2">
+              {signingIn ? (
+                <Loader2Icon className="size-4 animate-spin" />
+              ) : (
+                <LogInIcon className="size-4" />
+              )}
+              Sign in with Google
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => openSettings("account")}
+              className="w-full gap-2"
+            >
+              <CookieIcon className="size-4" />
+              Import browser cookies
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-8 px-6 pb-6 pt-3">
