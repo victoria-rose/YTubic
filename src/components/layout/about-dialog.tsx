@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { checkForUpdates } from "@/lib/updater";
+import { IS_BETA_PLATFORM, IS_MAC } from "@/lib/platform";
 import { openWhatsNew } from "@/lib/store/whats-new";
 
 const REPO_URL = "https://github.com/NUber-dev/YTubic";
@@ -55,6 +56,9 @@ export function AboutDialog({
               <DialogTitle className="text-lg">YTubic</DialogTitle>
               <DialogDescription>
                 {version ? `Version ${version}` : " "}
+                {version && IS_BETA_PLATFORM
+                  ? ` · beta for ${IS_MAC ? "macOS" : "Linux"}`
+                  : ""}
               </DialogDescription>
               <button
                 type="button"
@@ -72,6 +76,22 @@ export function AboutDialog({
           affiliated with, endorsed by, or sponsored by Google or YouTube.
           "YouTube" and "YouTube Music" are trademarks of Google LLC.
         </p>
+
+        {IS_BETA_PLATFORM && (
+          <p className="text-sm text-muted-foreground">
+            The {IS_MAC ? "macOS" : "Linux"} build is in beta. If something
+            breaks, please report it via the window menu (⋯ → Report an issue)
+            or on{" "}
+            <button
+              type="button"
+              onClick={link(`${REPO_URL}/issues`)}
+              className="underline underline-offset-2 hover:text-foreground"
+            >
+              GitHub
+            </button>
+            .
+          </p>
+        )}
 
         <div>
           <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">

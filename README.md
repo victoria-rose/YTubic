@@ -44,16 +44,23 @@ Built as a reaction to the sluggish webview-wrapper experience — YTubic talks 
 Download the latest installer from the [Releases](../../releases) page and run it.
 
 - **Windows 10/11:** run the `.exe` NSIS installer.
-- **macOS 10.15+:** open the universal `.dmg`; the same build supports Apple
-  Silicon and Intel. Login cookies are encrypted with a Keychain-backed key.
-- **Linux (experimental):** install the `.deb` or `.rpm`, or run the
-  `.AppImage`. Playback requires WebKitGTK 4.1, GTK 3 and the GStreamer base,
-  good and libav plugins. Signing in also requires a desktop Secret Service
-  provider such as GNOME Keyring or a compatible KWallet setup.
+- **macOS 10.15+ (beta):** open the universal `.dmg`; the same build supports
+  Apple Silicon and Intel. Login cookies are encrypted with a Keychain-backed
+  key.
+- **Linux (beta):** install the `.deb` or `.rpm`, or run the `.AppImage`.
+  Playback requires WebKitGTK 4.1, GTK 3 and the GStreamer base, good and
+  libav plugins. Signing in also requires a desktop Secret Service provider
+  such as GNOME Keyring or a compatible KWallet setup.
 - On first launch the app downloads its own copy of yt-dlp (~12 MB) into its
   data folder and keeps it updated automatically.
 - Signing in is optional: browse and playback work anonymously; sign in to get
   your library, likes, and playlists.
+
+> **Linux and macOS builds are in beta.** They are compiled and unit-tested in
+> CI, but get far less real-world testing than the Windows build. If something
+> breaks, please [open an issue](../../issues) — or use the in-app reporter
+> (⋯ menu → Report an issue), which attaches your app version and OS
+> automatically.
 
 ### FAQ
 
