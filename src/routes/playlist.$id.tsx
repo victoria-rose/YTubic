@@ -17,6 +17,7 @@ import {
   type PlaylistFirstPage,
   type PlaylistNextPage,
 } from "@/lib/innertube/playlist";
+import { fetchShuffleQueue } from "@/lib/innertube/radio";
 import type { ShelfItem } from "@/lib/innertube/types";
 import { EntityHeader } from "@/components/shared/entity-header";
 import { ExpandableText } from "@/components/shared/expandable-text";
@@ -194,6 +195,35 @@ function PlaylistPageView() {
 
   if (!header) return <PlaylistSkeleton />;
 
+  const shufflePlaylist = async () => {
+    const store = usePlaybackStore.getState();
+    // Prefer YTM's server-side shuffle: one /next call returns a fresh
+    // permutation over the ENTIRE playlist (not just the pages scrolled
+    // into view so far), and the rest of the permutation streams in via
+    // queueContinuation as playback nears the tail.
+    if (header.shuffle) {
+      try {
+        const page = await fetchShuffleQueue(
+          header.shuffle.playlistId,
+          header.shuffle.params,
+        );
+        if (page.tracks.length > 0) {
+          store.playShelfItems(page.tracks, 0);
+          store.setShuffle(true);
+          store.setQueueContinuation(page.continuationToken);
+          return;
+        }
+      } catch {
+        // Fall through to the client-side shuffle over loaded tracks.
+      }
+    }
+    if (tracks.length > 0) {
+      const start = Math.floor(Math.random() * tracks.length);
+      store.playShelfItems(tracks, start);
+      store.setShuffle(true);
+    }
+  };
+
   const metadataParts = [
     header.owner,
     header.trackCount ? `${header.trackCount} songs` : undefined,
@@ -246,15 +276,7 @@ function PlaylistPageView() {
               }
         }
         onShuffle={
-          openedFromArtist
-            ? undefined
-            : () => {
-                if (tracks.length > 0) {
-                  const start = Math.floor(Math.random() * tracks.length);
-                  usePlaybackStore.getState().playShelfItems(tracks, start);
-                  usePlaybackStore.getState().setShuffle(true);
-                }
-              }
+          openedFromArtist ? undefined : () => void shufflePlaylist()
         }
         actions={
           isArtistTopSongs ||

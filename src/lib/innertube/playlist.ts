@@ -51,9 +51,62 @@ function extractHeader(json: YtNode): YtNode {
   return result ?? {};
 }
 
+/** The header Shuffle button's watch endpoint, when the playlist has one. */
+export type PlaylistShuffle = {
+  playlistId: string;
+  params: string;
+};
+
+/**
+ * Pull the shuffle-play endpoint off a playlist browse response. The
+ * header's Shuffle button is a `watchPlaylistEndpoint` whose params
+ * embed the shufflePlayEndpoint protobuf marker ("8gECKAE"); handing
+ * those params to /next returns a server-shuffled queue over the whole
+ * playlist (see `fetchShuffleQueue`). Distinct from the header's mix
+ * button, which is a `watchPlaylistEndpoint` too but with plain
+ * "wAEB" params and an RDAMPL-prefixed id.
+ *
+ * `requireId` restricts matches to that playlist id — used when walking
+ * the full response (rather than just the header) so a stray endpoint
+ * on some other rendered entity can't be picked up.
+ */
+export function extractShuffleEndpoint(
+  root: YtNode,
+  requireId?: string,
+): PlaylistShuffle | undefined {
+  const seen = new WeakSet<object>();
+  let result: PlaylistShuffle | undefined;
+  const walk = (node: unknown) => {
+    if (result || !node || typeof node !== "object") return;
+    if (seen.has(node as object)) return;
+    seen.add(node as object);
+    if (Array.isArray(node)) {
+      for (const c of node) walk(c);
+      return;
+    }
+    const n = node as YtNode;
+    const ep = n.watchPlaylistEndpoint;
+    if (
+      ep &&
+      typeof ep.playlistId === "string" &&
+      typeof ep.params === "string" &&
+      decodeURIComponent(ep.params).includes("8gECKAE") &&
+      (!requireId || ep.playlistId === requireId)
+    ) {
+      result = { playlistId: ep.playlistId, params: ep.params };
+      return;
+    }
+    for (const k of Object.keys(n)) walk(n[k]);
+  };
+  walk(root);
+  return result;
+}
+
 /** First page plus the continuation pointer for the next one. */
 export type PlaylistFirstPage = PlaylistPage & {
   continuationToken?: string;
+  /** Server-side shuffle endpoint from the header, when present. */
+  shuffle?: PlaylistShuffle;
 };
 
 /** Every subsequent page — only tracks and the next token. */
@@ -107,6 +160,11 @@ export async function fetchPlaylistFirstPage(
   const secondText = readRuns(header.secondSubtitle);
   const trackCount = parseTrackCount(secondText);
 
+  // Header first; fall back to the full response (id-restricted) for
+  // layouts that keep the buttons outside the header renderer.
+  const shuffle =
+    extractShuffleEndpoint(header) ?? extractShuffleEndpoint(json, rawId);
+
   const seenIds = new Set<string>();
   let tracks = collectTracks(json, seenIds);
   let continuationToken = findContinuationToken(json);
@@ -155,6 +213,7 @@ export async function fetchPlaylistFirstPage(
     thumbnails,
     tracks,
     continuationToken,
+    shuffle,
   };
 }
 

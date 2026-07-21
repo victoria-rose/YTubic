@@ -47,6 +47,14 @@ export type PlaybackState = {
   /** When true, auto-append radio tracks to the queue when the last one ends. */
   autoRadio: boolean;
 
+  /**
+   * Pending /next continuation for the current queue's source — set when
+   * the queue came from a server-side playlist shuffle whose remaining
+   * permutation is still on YTM's side. The audio engine drains it as
+   * playback nears the tail; any action that replaces the queue clears it.
+   */
+  queueContinuation?: string;
+
   // Actions — queue
   playNow: (track: QueueTrack | ShelfItem, extras?: QueueTrack[]) => void;
   setQueue: (tracks: QueueTrack[], startIndex?: number) => void;
@@ -58,6 +66,7 @@ export type PlaybackState = {
   moveTrack: (from: number, to: number) => void;
   clearQueue: () => void;
   setAutoRadio: (on: boolean) => void;
+  setQueueContinuation: (token?: string) => void;
 
   // Actions — transport
   toggle: () => void;
@@ -110,6 +119,7 @@ const playbackStateCreator: StateCreator<PlaybackState> = (set, get) => ({
   shuffle: false,
   repeat: "off",
   autoRadio: false,
+  queueContinuation: undefined,
 
   status: "idle",
   error: undefined,
@@ -141,6 +151,7 @@ const playbackStateCreator: StateCreator<PlaybackState> = (set, get) => ({
       duration: mapped.duration ?? 0,
       playing: true,
       error: undefined,
+      queueContinuation: undefined,
     });
   },
 
@@ -162,6 +173,7 @@ const playbackStateCreator: StateCreator<PlaybackState> = (set, get) => ({
       duration: queue[i].duration ?? 0,
       playing: true,
       error: undefined,
+      queueContinuation: undefined,
     });
   },
 
@@ -274,10 +286,13 @@ const playbackStateCreator: StateCreator<PlaybackState> = (set, get) => ({
       playing: false,
       position: 0,
       duration: 0,
+      queueContinuation: undefined,
     });
   },
 
   setAutoRadio: (on) => set({ autoRadio: on }),
+
+  setQueueContinuation: (token) => set({ queueContinuation: token }),
 
   toggle: () => {
     const { queue, playing } = get();
@@ -413,6 +428,7 @@ export const usePlaybackStore = isFloatingPlayerWindow()
           shuffle: s.shuffle,
           repeat: s.repeat,
           autoRadio: s.autoRadio,
+          queueContinuation: s.queueContinuation,
           volume: s.volume,
           muted: s.muted,
         }),
