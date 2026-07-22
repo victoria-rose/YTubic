@@ -404,7 +404,10 @@ function SidebarGroupLabel({
       data-sidebar="group-label"
       className={cn(
         "flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium text-sidebar-foreground/70 ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-150 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
-        "group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0",
+        // Collapsed mode hides the label with opacity + a -mt-8 pull-up, which
+        // leaves an invisible 32px strip overlapping the row above it; without
+        // pointer-events-none that strip eats clicks (e.g. the last Browse item).
+        "group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0",
         className
       )}
       {...props}
