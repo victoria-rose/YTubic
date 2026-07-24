@@ -66,7 +66,7 @@ import { fetchAccountInfo } from "@/lib/innertube/account";
 import { fetchLibraryPlaylists } from "@/lib/innertube/library";
 import type { ShelfItem } from "@/lib/innertube/types";
 import { resetInnertube } from "@/lib/innertube/client";
-import { usePremiumStore } from "@/lib/store/premium";
+import { usePremiumAccess } from "@/lib/store/premium";
 import {
   removeAccount,
   switchAccount,
@@ -448,7 +448,7 @@ function UserProfile() {
     retry: false,
   });
   const accounts = useAccounts();
-  const premiumStatus = usePremiumStore((s) => s.status);
+  const premiumAccess = usePremiumAccess();
 
   const allAccounts = accounts.data ?? [];
   const activeAccount = allAccounts.find((a) => a.isActive) ?? allAccounts[0];
@@ -484,7 +484,7 @@ function UserProfile() {
     activeAccount?.photoUrl ??
     undefined;
   const initial = (name || email || "?").trim().charAt(0).toUpperCase();
-  const isPremium = premiumStatus === "premium";
+  const isPremium = premiumAccess;
   const tierLabel = isPremium ? "Premium" : "Free";
 
   const signOut = async () => {
