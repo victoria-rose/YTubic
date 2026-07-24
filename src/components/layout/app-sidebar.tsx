@@ -66,7 +66,7 @@ import { fetchLibraryPlaylists } from "@/lib/innertube/library";
 import type { ShelfItem } from "@/lib/innertube/types";
 import { resetInnertube } from "@/lib/innertube/client";
 import { accountSlot } from "@/lib/auth-presence";
-import { usePremiumStore } from "@/lib/store/premium";
+import { usePremiumAccess } from "@/lib/store/premium";
 import {
   accountInfoQuery,
   authLoggedInQuery,
@@ -438,7 +438,7 @@ function UserProfile() {
   const loggedIn = useQuery(authLoggedInQuery);
   const account = useQuery(accountInfoQuery(loggedIn.data === true));
   const accounts = useAccounts();
-  const premiumStatus = usePremiumStore((s) => s.status);
+  const premiumAccess = usePremiumAccess();
 
   const allAccounts = accounts.data ?? [];
   const activeAccount = allAccounts.find((a) => a.isActive) ?? allAccounts[0];
@@ -471,7 +471,7 @@ function UserProfile() {
     activeAccount?.photoUrl ??
     undefined;
   const initial = (name || email || "?").trim().charAt(0).toUpperCase();
-  const isPremium = premiumStatus === "premium";
+  const isPremium = premiumAccess;
   const tierLabel = isPremium ? "Premium" : "Free";
 
   const signOut = async () => {
