@@ -21,6 +21,9 @@
   </a>
 </p>
 
+> [!WARNING]
+> **Disclaimer:** The "Force Premium access" feature is provided solely for educational, research, and local testing purposes. Activating this toggle may violate YouTube's Terms of Service. The developer of YTubic assumes no responsibility for any account actions, restrictions, or legal consequences resulting from the use of this feature.
+
 Built as a reaction to the sluggish webview-wrapper experience — YTubic talks to YouTube's InnerTube API directly, renders its own UI, and caches aggressively, so navigation and playback feel instant.
 
 ![YTubic — artist page with the player and synced lyrics](assets/screenshots/artist-page.jpg)

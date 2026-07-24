@@ -36,7 +36,7 @@ import { PERIOD_MS as AUTO_CLEAN_PERIOD_MS } from "@/lib/cache-cleanup";
 import { formatBytes, formatDateTime, formatRelative } from "@/lib/format";
 import { fetchLibraryTracks } from "@/lib/innertube/library";
 import { clearPrefetchMemo } from "@/lib/stream";
-import { usePremiumStore } from "@/lib/store/premium";
+import { usePremiumAccess } from "@/lib/store/premium";
 import {
   useSettingsStore,
   type CacheAutoCleanPeriod,
@@ -227,8 +227,8 @@ function CacheFolderGroup() {
 /* ------------------------------------------------------------------ */
 
 function CacheGroupGate({ loggedIn }: { loggedIn: boolean }) {
-  const premium = usePremiumStore((s) => s.status);
-  if (premium !== "premium") {
+  const premium = usePremiumAccess();
+  if (!premium) {
     return <PremiumGatedCacheGroup loggedIn={loggedIn} />;
   }
   return <CacheGroup loggedIn={loggedIn} />;
