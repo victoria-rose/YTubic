@@ -13,7 +13,7 @@ import { prefetchStream, saveTrackMeta, streamUrlFor } from "@/lib/stream";
 import { AudioGraph, canSelectOutputDevice } from "@/lib/audio-graph";
 import { usePlaybackStore, type QueueTrack } from "@/lib/store/playback";
 import { eqGains, usePlaybackSettings } from "@/lib/store/playback-settings";
-import { usePremiumStore } from "@/lib/store/premium";
+import { isPremium, usePremiumAccess } from "@/lib/store/premium";
 import { useSettingsStore } from "@/lib/store/settings";
 import { openPremiumGate } from "@/lib/store/premium-gate";
 import { resolveStreamId, useTrackSourceStore } from "@/lib/store/track-source";
@@ -233,7 +233,7 @@ export function useAudioEngine() {
       if (!pendingRef.current && remaining <= cf + CROSSFADE_PRELOAD_LEAD_SEC) {
         const standby = standbyRef.current;
         // Same gate as the resolve effect: no stream without Premium.
-        if (!standby || usePremiumStore.getState().status !== "premium") {
+        if (!standby || !isPremium()) {
           return;
         }
         const p: PendingNext = {
@@ -443,7 +443,7 @@ export function useAudioEngine() {
   // re-run when the status lands after sign-in / the launch-time probe.
   // Without this, a track gated during the "still checking" window would
   // sit silent until the user re-picked it.
-  const premiumOk = usePremiumStore((s) => s.status === "premium");
+  const premiumOk = usePremiumAccess();
 
   useEffect(() => {
     const el = audioRef.current;
