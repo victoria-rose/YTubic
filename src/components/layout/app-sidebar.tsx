@@ -79,7 +79,7 @@ import type { ShelfItem } from "@/lib/innertube/types";
 import { pickThumbnail } from "@/components/shared/thumbnail";
 import { resetInnertube } from "@/lib/innertube/client";
 import { accountSlot } from "@/lib/auth-presence";
-import { usePremiumStore } from "@/lib/store/premium";
+import { usePremiumAccess } from "@/lib/store/premium";
 import { accountInfoQuery, authLoggedInQuery } from "@/lib/store/auth-queries";
 import { useSessionStatusStore } from "@/lib/store/session-status";
 import {
@@ -535,7 +535,7 @@ function UserProfile() {
   const loggedIn = useQuery(authLoggedInQuery);
   const account = useQuery(accountInfoQuery(loggedIn.data === true));
   const accounts = useAccounts();
-  const premiumStatus = usePremiumStore((s) => s.status);
+  const premiumAccess = usePremiumAccess();
   const expiredAccountId = useSessionStatusStore((s) => s.expiredAccountId);
 
   const allAccounts = accounts.data ?? [];
@@ -579,7 +579,7 @@ function UserProfile() {
     activeAccount?.photoUrl ??
     undefined;
   const initial = (name || email || "?").trim().charAt(0).toUpperCase();
-  const isPremium = premiumStatus === "premium";
+  const isPremium = premiumAccess;
   const tierLabel = isPremium ? "Premium" : "Free";
 
   const signOut = async () => {
