@@ -40,7 +40,7 @@ const APP_ID: &str = match option_env!("YTUBIC_DISCORD_APP_ID") {
 // server-side. So we reuse our own app icon straight from the public repo,
 // which means nothing to upload and no Dev Portal art assets to maintain.
 const LOGO_URL: &str =
-    "https://raw.githubusercontent.com/NUber-dev/YTubic/main/src-tauri/icons/icon.png";
+    "https://raw.githubusercontent.com/victoria-rose/YTubic/main/src-tauri/icons/icon.png";
 
 /// A track's presence as the frontend sees it. `start_ms`/`end_ms` are Unix
 /// milliseconds (per Discord's Activity spec) and are `None` while paused, so
