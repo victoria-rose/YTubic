@@ -23,7 +23,7 @@ import { openWhatsNew } from "@/lib/store/whats-new";
 import { DiscordIcon, GithubIcon, XIcon } from "@/components/shared/brand-icons";
 import { cn } from "@/lib/utils";
 
-const REPO_URL = "https://github.com/NUber-dev/YTubic";
+const REPO_URL = "https://github.com/victoria-rose/YTubic";
 const DISCORD_URL = "https://discord.gg/4gccUpZyYH";
 const X_URL = "https://x.com/NUber_ux";
 // Donatello. The button wears a generic Tabler glyph rather than
