@@ -50,7 +50,7 @@ async function headers(): Promise<Record<string, string>> {
   }
   cachedHeaders = {
     Accept: "application/json",
-    "Lrclib-Client": `YTubic${version} (https://github.com/NUber-dev/YTubic)`,
+    "Lrclib-Client": `YTubic${version} (https://github.com/victoria-rose/YTubic)`,
   };
   return cachedHeaders;
 }
