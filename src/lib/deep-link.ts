@@ -1,4 +1,5 @@
 import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link";
+import { useSettingsStore } from "@/lib/store/settings";
 
 /**
  * `ytubic://` links. The scheme is registered by the installer (and at
@@ -40,6 +41,45 @@ export function universalShareUrl(
   // has to carry it in the link (the page whitelists YouTube CDN hosts).
   if (kind !== "watch" && cover) q.set("c", cover);
   return `${SHARE_BASE}?${q.toString()}`;
+}
+
+/**
+ * Direct YouTube Music share URL.
+ */
+export function ytmusicShareUrl(
+  kind: DeepLinkTarget["kind"],
+  id: string,
+): string {
+  switch (kind) {
+    case "watch":
+      return `https://music.youtube.com/watch?v=${id}`;
+    case "artist":
+      return `https://music.youtube.com/channel/${id}`;
+    case "album":
+      return `https://music.youtube.com/browse/${id}`;
+    case "playlist": {
+      const cleanId = id.startsWith("VL") ? id.slice(2) : id;
+      return `https://music.youtube.com/playlist?list=${cleanId}`;
+    }
+  }
+}
+
+/**
+ * Returns either a direct YouTube Music link or a universal YTubic share link
+ * depending on the user's `ytubicShareLinks` setting (or optional override).
+ */
+export function getShareUrl(
+  kind: DeepLinkTarget["kind"],
+  id: string,
+  title?: string,
+  cover?: string,
+  useYtubicOverride?: boolean,
+): string {
+  const useYtubic =
+    useYtubicOverride ?? useSettingsStore.getState().ytubicShareLinks;
+  return useYtubic
+    ? universalShareUrl(kind, id, title, cover)
+    : ytmusicShareUrl(kind, id);
 }
 
 export function parseDeepLink(raw: string): DeepLinkTarget | null {

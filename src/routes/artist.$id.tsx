@@ -22,7 +22,7 @@ import { pickHighResThumbnail } from "@/components/shared/thumbnail";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { copyLink } from "@/lib/clipboard";
-import { universalShareUrl } from "@/lib/deep-link";
+import { getShareUrl } from "@/lib/deep-link";
 import { Separator } from "@/components/ui/separator";
 import { usePlaybackStore } from "@/lib/store/playback";
 import type {
@@ -228,7 +228,7 @@ function ArtistActions({ artist }: { artist: ArtistPage }) {
         aria-label="Share"
         onClick={() =>
           void copyLink(
-            universalShareUrl(
+            getShareUrl(
               "artist",
               artist.id,
               artist.name,

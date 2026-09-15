@@ -32,7 +32,7 @@ import {
 import { pickHighResThumbnail } from "@/components/shared/thumbnail";
 import { fetchAlbum } from "@/lib/innertube/album";
 import { copyLink } from "@/lib/clipboard";
-import { universalShareUrl } from "@/lib/deep-link";
+import { getShareUrl } from "@/lib/deep-link";
 import { fetchRadio } from "@/lib/innertube/radio";
 import { usePlaybackStore } from "@/lib/store/playback";
 import type { AlbumPage, ShelfItem } from "@/lib/innertube/types";
@@ -142,7 +142,7 @@ export function useAlbumMenuController(albumId: string, album?: AlbumPage) {
   const share = async () => {
     const a = await resolve();
     await copyLink(
-      universalShareUrl(
+      getShareUrl(
         "album",
         albumId,
         a?.title,

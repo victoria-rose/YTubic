@@ -18,6 +18,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Group, SettingRow, TabPane } from "@/components/settings/primitives";
+import { IconShare3Filled } from "@/components/shared/filled-icons";
 import { IS_MAC } from "@/lib/platform";
 import { authLoggedInQuery } from "@/lib/store/auth-queries";
 import { useSettingsStore } from "@/lib/store/settings";
@@ -122,6 +123,8 @@ function BehaviorGroup() {
   );
   const devPremiumOverride = usePremiumStore((s) => s.devOverride);
   const setDevPremiumOverride = usePremiumStore((s) => s.setDevOverride);
+  const ytubicShareLinks = useSettingsStore((s) => s.ytubicShareLinks);
+  const setYtubicShareLinks = useSettingsStore((s) => s.setYtubicShareLinks);
 
   const qc = useQueryClient();
   const autostart = useQuery({
@@ -194,6 +197,18 @@ function BehaviorGroup() {
             checked={devPremiumOverride}
             onCheckedChange={setDevPremiumOverride}
             aria-label="Force Premium access"
+          />
+        }
+      />
+      <SettingRow
+        icon={IconShare3Filled}
+        title="YTubic share links"
+        description="Share buttons copy YTubic universal links instead of direct YouTube Music links."
+        control={
+          <Switch
+            checked={ytubicShareLinks}
+            onCheckedChange={setYtubicShareLinks}
+            aria-label="YTubic share links"
           />
         }
       />

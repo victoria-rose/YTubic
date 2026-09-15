@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { usePlaybackStore } from "@/lib/store/playback";
 import { copyLink } from "@/lib/clipboard";
-import { universalShareUrl } from "@/lib/deep-link";
+import { getShareUrl } from "@/lib/deep-link";
 import {
   usePlaylistSortStore,
   type PlaylistSortMode,
@@ -342,7 +342,7 @@ function PlaylistPageView() {
                 aria-label="Share"
                 onClick={() =>
                   void copyLink(
-                    universalShareUrl(
+                    getShareUrl(
                       "playlist",
                       id.startsWith("VL") ? id.slice(2) : id,
                       header.title,

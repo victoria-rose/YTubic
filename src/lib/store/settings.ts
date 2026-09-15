@@ -58,6 +58,10 @@ type State = {
    *  scrobbling and off by default: an opt-in, since people often keep their
    *  likes intentionally different per platform. See `lib/lastfm.ts`. */
   lastfmLoveSync: boolean;
+  /** Copy YTubic universal share links instead of direct YouTube Music links.
+   *  Off (YouTube Music links) by default. */
+  ytubicShareLinks: boolean;
+  setYtubicShareLinks: (v: boolean) => void;
   setCloseAction: (v: CloseButtonAction) => void;
   setCacheAutoClean: (v: CacheAutoCleanPeriod) => void;
   markCacheCleaned: () => void;
@@ -99,6 +103,8 @@ export const useSettingsStore = create<State>()(
       lastfmUsername: null,
       lastfmAvatar: null,
       lastfmLoveSync: false,
+      ytubicShareLinks: false,
+      setYtubicShareLinks: (ytubicShareLinks) => set({ ytubicShareLinks }),
       setCloseAction: (closeAction) => set({ closeAction }),
       setCacheAutoClean: (cacheAutoClean) => set({ cacheAutoClean }),
       markCacheCleaned: () => set({ lastCacheCleanAt: Date.now() }),

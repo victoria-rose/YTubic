@@ -26,7 +26,7 @@ import {
 } from "@/components/shared/filled-icons";
 import { toast } from "sonner";
 import { copyLink } from "@/lib/clipboard";
-import { universalShareUrl } from "@/lib/deep-link";
+import { getShareUrl } from "@/lib/deep-link";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -397,7 +397,7 @@ export function TrackMenuItems({
 
       {/* One link for everyone: the share page opens the track in YTubic
           when it's installed and falls back to YouTube Music when it isn't. */}
-      <Item onSelect={() => void copyLink(universalShareUrl("watch", item.id))}>
+      <Item onSelect={() => void copyLink(getShareUrl("watch", item.id))}>
         <IconShare3Filled />
         Share
       </Item>
